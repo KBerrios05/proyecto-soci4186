@@ -1,0 +1,420 @@
+---
+title: "Percepción socioeconómica y familiar de los estudiantes de la IUPI"
+subtitle: "Las rolanditas"
+author:
+      - name: "Kiandra L. Berríos López"
+        affiliations: "801-23-3016"
+      - name: "Ana L. Cortés Guzmán"
+        affiliations: "801-24-6532"
+      - name: "Karielys Y. Algarín Cancel"
+        affiliations: "801-23-0154"
+date: today
+date-format: long
+lang: es
+format:
+  docx:
+    reference-doc: Formato_TP4.docx
+    number-sections: true
+    typst: default
+  html:
+    toc: true
+    toc-title: "Índice"
+    theme: united
+    css: uprrp-theme.css
+    embed-resources: true
+    number-sections: true
+bibliography: Referencias.bib
+csl: apa-clacso.csl
+---
+
+**SOCI 4186 — Tarea de Proyecto de Investigación Nº4: Análisis exploratorio de datos**
+
+**Se asigna: martes, 27 de octubre de 2026. Fecha límite de entrega: viernes, 13 de noviembre de 2026, a las 23:59 vía Moodle.**
+
+
+
+# Contenido del Análisis Exploratorio de Datos (AED)
+
+## Descripción de los datos
+
+Variables, tipos, definiciones operacionales y transformaciones relevantes.
+
+```{r}
+#| label: setup
+#| message: false
+#| warning: false
+
+# Cargue las librerías necesarias
+library(tidyverse)
+library(dplyr)
+
+# Cargue sus datos aquí
+datos_originales <- read_csv("datos/encuesta_investigación_soci.csv", na = c("", "NA"), show_col_types = FALSE)
+
+glimpse(datos_originales)
+
+datos <- datos_originales |> 
+  rename(
+    id_encuestado = "Marca temporal",
+    preocupación_empleo = "¿Siente preocupación en no encontrar un empleo con un salario adecuado luego de completar sus estudios?",
+    incertidumbre_económica = "¿La situación económica actual de Puerto Rico genera sobre usted incertidumbre sobre su futuro?",
+    costo_vida_independencia = "¿Consideras que el costo de vida en Puerto Rico dificulta que los jóvenes puedan independizarse económicamente?",
+    economía_desmotiva_hijos = "¿Consideras que las condiciones económicas actuales de Puerto Rico desmotivan a los jóvenes a tener hijos?",
+    buscar_empleo_fuera = "¿Consideras la posibilidad de buscar empleo fuera de Puerto Rico una vez culmine sus estudios universitarios.",
+    titulo_estabilidad = "¿Consideras que obtener un título universitario aumenta sus posibilidades de alcanzar una mayor estabilidad económica?",
+    costo_compra_vivienda = "¿Consideras que el costo de compra de una vivienda en Puerto Rico es muy elevado?",
+    costo_alquiler = "¿Consideras que el costo de alquiler en Puerto Rico es muy elevado?",
+    costo_alimentos = "¿Consideras que en los últimos 12 meses el costo de los alimentos en Puerto Rico cada vez es más elevado?",
+    estudios_retrasan_familia = "¿Consideras que continuar tus estudios podría retrasar tus planes de formar una familia?", 
+    dispuesta_posponer_familia = "¿Estarías dispuest@ a posponer la formación de la familia para alcanzar tus metas académicas o profesionales?",
+    prioridad_actual = "¿Cuál de los siguientes aspectos consideras prioritario actualmente?\n", 
+    desea_hijos = "¿Deseas tener hijos en algún momento de tu vida?",
+    cantidad_hijos =  "En total, ¿cuántos hijos desea tener (contando los que ya tiene, si aplica)?",
+    retrasar_por_economía = "¿Has considerado retrasar tus planes de tener hijos debido a la situación económica?\n",
+    factores_hijos = "¿Qué factores influyen en tu decisión sobre tener hijos? (Marque todos los que correspondan)",
+    edad = "¿Cuál es tu edad?",
+    género = "¿Con qué género de identificas?",
+    facultad = "¿Cuál es su facultad de procedencia en la Universidad de Puerto Rico Recinto de Rio Piedras?",
+    año_estudios = "¿En qué año de estudios se encuentra actualmente?",
+    empleo = "¿Actualmente tiene empleo?",
+    ingreso_hogar = "¿Cuál es el ingreso anual promedio aproximado de su hogar?"
+  )
+
+datos_limpios<- datos |> 
+  select(!last_col())
+
+datos_limpios <- datos_limpios |> 
+  mutate(id_encuestado = row_number()) 
+
+datos_limpios <- datos_limpios |> 
+  mutate(
+    across(c(preocupación_empleo, incertidumbre_económica, costo_vida_independencia, 
+             economía_desmotiva_hijos, buscar_empleo_fuera, titulo_estabilidad, 
+             costo_compra_vivienda, costo_alquiler,costo_alimentos), 
+           ~ factor(.x, levels = c(1, 2, 3, 4, 5), ordered = TRUE))
+  )
+
+
+
+glimpse(datos_limpios)
+
+datos_likert<- datos_limpios |> 
+    mutate(across(
+    c(preocupación_empleo, incertidumbre_económica, costo_vida_independencia, 
+     economía_desmotiva_hijos, buscar_empleo_fuera, titulo_estabilidad, 
+     costo_compra_vivienda, costo_alquiler,costo_alimentos),
+    ~ factor(
+      .x,
+      levels = 1:5,
+      labels = c(
+        "Totalmente en desacuerdo",
+        "En desacuerdo",
+        "Neutral",
+        "De acuerdo",
+        "Totalmente de acuerdo"
+      ),
+      ordered = TRUE
+    )
+))
+
+
+
+
+```
+
+Este análisis utiliza las respuestas recopiladas de la encuesta "Percepciones económicas y formación de una familia en estudiantes universitarios(UPRRP)". El archivo disponible contiene  32 respuestas de  muestra . Para nuestro trabajo se consideran únicamente las respuestas de personas que indicaron tener 18 años o más y aceptaron el consentimiento informado. En él código que se trabajo al inicio muestra parte de la limpieza de los datos; en ella se identifican los "NA", se renombraron las variables originales para una mejor identificación, se eliminó la última casilla ya que es un espacio para dudas o comentarios dirigidos hacia nosotras.
+
+## Estadísticas descriptivas
+
+Medidas que ayuden a comprender los datos (por ejemplo, conteos, proporciones, medias, medianas, desviaciones estándar).
+
+```{r}
+#| label: estadisticas-descriptivas
+library(tidyverse)
+library(dplyr)
+
+# Incluya su código para estadísticas descriptivas
+summary(datos_limpios)
+
+# Estadísticas de variables numéricas 
+
+datos_limpios |> 
+  summarise(across(c(preocupación_empleo, incertidumbre_económica,         costo_vida_independencia, 
+     economía_desmotiva_hijos, buscar_empleo_fuera, titulo_estabilidad, 
+     costo_compra_vivienda, costo_alquiler, costo_alimentos), 
+     list(
+     Media = ~round(mean(as.numeric(as.character(.x)), na.rm = TRUE), 2),
+     Mediana = ~round(median(as.numeric(as.character(.x)), na.rm = TRUE), 2),
+     Desv_Est = ~round(sd(as.numeric(as.character(.x)), na.rm = TRUE), 2)
+ )))|> 
+  pivot_longer(everything(), 
+               names_to = c("Variable", "Estadistica"), 
+               names_pattern = "(.*)_(Media|Mediana|Desv_Est)$") |> 
+  pivot_wider(names_from = Estadistica, values_from = value)
+
+
+# Estadísticas de variables categorías 
+
+tabla_consolidada <- datos_limpios |>
+  
+  # 1. Seleccionamos y transformamos las variables de interés a formato largo
+  pivot_longer(
+    cols = c(facultad, edad, género), 
+    names_to = "variable", 
+    values_to = "categoria"
+  ) |>
+  # 2. Contamos las respuestas por variable y su respectiva categoría
+  count(variable, categoria, name = "respuestas") |>
+  # 3. Agrupamos por variable para que el porcentaje se calcule sobre el total de cada una
+  group_by(variable) |>
+  mutate(porcentaje = 100 * respuestas / sum(respuestas)) |>
+  ungroup()
+
+# Ver el resultado
+print(tabla_consolidada)
+
+
+
+
+
+```
+
+  La muestra está compuesta por 32 participantes. La distribución por género es casi balanceada: 17 personas se identificaron como masculino (53.1%) y 15 como femenino (46.9%). En cuanto a la edad, la muestra es muy joven. La categoría más frecuente es la de 21 a 23 años, con 17 participantes (53.1%), seguida de los grupos de 18 a 20 y de 24 a 26 años, con 6 participantes cada uno (18.8%). Solo 2 personas tienen entre 27 y 29 años (6.25%) y 1 tiene 30 años o más (3.12%). En conjunto, 29 de las 32 personas (aproximadamente 91%) tienen 26 años o menos, lo que es consistente con un grupo de estudiantes subgraduados. Por facultad, predomina Ciencias Sociales con 12 participantes (37.5%), seguida de Humanidades con 6 (18.8%) y Ciencias Naturales con 5 (15.6%). Comunicación y Educación aportan 3 personas cada una (9.38%), Administración de Empresas aporta 2 (6.25%) y hay 1 respuesta faltante (3.12%). Ciencias Sociales y Humanidades suman más de la mitad de la muestra (56.3%), lo que sugiere que se alcanzó principalmente a estudiantes cercanos al entorno de quien investiga. Por eso, los resultados no pueden generalizarse a toda la población universitaria.
+
+  Las primeras nueve variables se midieron con escalas tipo Likert. Van de 1 (totalmente en desacuerdo) a 5 (totalmente de acuerdo). Las medias son muy altas en casi todas las preguntas sobre la situación económica. Las más altas son el costo de vida como obstáculo para independizarse (M = 4.84, DE = 0.73) y el aumento en el costo de los alimentos (M = 4.84, DE = 0.57), seguidas por el costo de compra de vivienda (M = 4.81), la incertidumbre económica sobre el futuro (M = 4.78), el costo del alquiler (M = 4.72) y la idea de que la economía desmotiva a los jóvenes a tener hijos (M = 4.72). La preocupación por no conseguir un empleo con salario adecuado también es alta, aunque algo menor y más dispersa (M = 4.41, DE = 0.95). En todas estas variables la mediana es 5, es decir, al menos la mitad de las personas escogió la respuesta máxima. Las desviaciones estándar son pequeñas, lo que indica un consenso fuerte: casi todos los participantes perciben la situación económica como difícil. Esto también implica que las respuestas se concentraron principalmente en el nivel más alto de la escala, lo que refleja un alto grado de acuerdo entre los participantes y un poca variabilidad en las respuestas.
+  
+Las dos variables con menor acuerdo y mayor dispersión son la posibilidad de buscar empleo fuera de Puerto Rico (M = 3.50, mediana = 3.5, DE = 1.24) y la creencia de que un título universitario aumenta la estabilidad económica (M = 3.44, mediana = 3.0, DE = 1.08). Aquí el grupo está más dividido. Mientras casi todos coinciden en que los costos son un problema, hay opiniones muy diversas sobre irse a trabajar fuera y sobre si el grado realmente garantiza estabilidad. 
+
+## Visualizaciones (si aplica)
+
+Incluyan solamente las gráficas que aporten a la comprensión de los datos. Por ejemplo:
+
+- histogramas,
+- diagramas de cajas,
+- gráficos de barras,
+- gráficos de dispersión,
+- mapas (si los datos lo justifican).
+
+```{r}
+#| label: visualizaciones
+#| fig-cap: "Descripción de la figura"
+
+library(tidyverse)
+
+# Incluya su código para visualizaciones
+# ggplot(datos, aes(x = variable)) +
+#   geom_histogram()
+
+
+#1
+g_género_hijos <- ggplot(datos_limpios, aes(x = cantidad_hijos, fill = género)) +
+  geom_bar(position = "dodge") +
+  scale_fill_manual(values = c("Femenino" = "hotpink", "Masculino" = "royalblue")) +
+  labs(
+    title = "Cantidad de hijos deseados según género",
+    subtitle = "Comparación de la cantidad de hijos deseados por género",
+    x = "Hijos deseados",
+    y = "Cantidad de respuestas",
+    fill = "Género"
+  ) +
+  theme_minimal()
+
+g_género_hijos
+
+
+#2
+
+g_preocupación_año <- ggplot(datos_likert, aes(x = año_estudios, fill = preocupación_empleo)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Preocupación por el empleo según año de estudio",
+    x = "Año de estudio",
+    y = "Porcentaje",
+    fill = "Nivel de preocupación"
+  ) +
+  scale_x_discrete(limits = c("Segundo año", "Tercer año", "Cuarto año o más", "Estudiante graduado")) +
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal()
+
+g_preocupación_año
+
+#3
+
+tener_hijos <- ggplot(datos_limpios, aes(x = desea_hijos)) +
+  geom_bar(fill = "darkorange", width = 0.45) +
+  geom_text(
+    stat = "count",
+    aes(label = paste0(after_stat(count), " (", round(after_stat(count) / nrow(datos_limpios) * 100), "%)")),
+    vjust = -0.4,
+    size = 3.5
+  ) +
+  ylim(0, 24) +
+  labs(
+    title = paste0("¿Desea tener hijos en algún momento de su vida? (n = ", nrow(datos_limpios), ")"),
+    x = "Respuesta",
+    y = "Cantidad de respuestas"
+  ) +
+  theme_minimal()
+
+tener_hijos
+
+
+
+
+
+```
+
+  La primera gráfica compara la cantidad de hijos deseados según el género. Como los grupos son casi del mismo tamaño (15 mujeres y 17 hombres), las barras se pueden comparar directamente. Para ambos géneros la opción más frecuente es tener dos hijos (6 mujeres y 8 hombres). Las barras para uno y tres hijos son parecidas en ambos grupos, con ligera ventaja de los hombres (4 y 3 contra 3 y 2). La diferencia más llamativa está en la categoría “Ninguno”: 4 mujeres contra 1 hombre, es decir, cerca de una de cada cuatro mujeres (26.7%) frente a uno de cada diecisiete hombres (5.9%). Además, la única persona que desea cuatro hijos o más es un hombre. En general, las mujeres de la muestra tienden a desear menos hijos que los hombres. No obstante, debido al número reducido de participantes, es importante aclarar que esta descripción se basa únicamente en los datos obtenidos y no representa necesariamente a toda la población estudiantil. Sin embargo, sería interesante explorar si esta misma tendencia se mantiene al realizar el estudio con una muestra más grande.
+  
+  La segunda gráfica muestra el nivel de acuerdo con la preocupación por el empleo según el año de estudio, en proporciones. Por las proporciones, segundo año tiene aproximadamente 4 personas, tercer año 7, cuarto año o más 16 y estudiantes graduados 5. En segundo año la preocupación es la más baja: solo 25% está totalmente de acuerdo, 50% está de acuerdo y 25% está en desacuerdo. En tercer año, cerca de 71% está totalmente de acuerdo, y el resto se divide entre neutral y en desacuerdo. En cuarto año o más, 75% está totalmente de acuerdo, cerca de 19% está de acuerdo y solo una persona es neutral. Entre los graduados, 60% está totalmente de acuerdo y 40% es neutral, sin nadie en desacuerdo. El patrón sugiere que la preocupación aumenta a medida que se acerca el final de los estudios, y que quienes están en segundo año, más lejos del mercado laboral, sienten menos urgencia.
+
+  La tercera gráfica presenta si los participantes desean tener hijos en algún momento de su vida (n = 32). Veinte personas respondieron que sí (62%), 8 respondieron “No sé” (25%) y 4 respondieron que no (12%). A pesar de la alta preocupación económica descrita antes, la mayoría quiere tener hijos. Sin embargo, una cuarta parte aún no sabe, lo que es un grupo considerable y conecta con la pregunta de investigación sobre cómo la economía influye en las decisiones familiares.
+
+## Relaciones entre variables (si aplica)
+
+Pueden incluir correlaciones, pruebas estadísticas básicas u otras exploraciones simples cuando los datos lo permitan.
+
+```{r}
+#| label: relaciones
+library(tidyverse)
+
+# Incluya su código para explorar relaciones
+# cor(datos$var1, datos$var2)
+
+
+
+datos_limpios <- datos_limpios |>
+  mutate(
+    preocupación_empleo = as.numeric(as.character(preocupación_empleo)),
+    buscar_empleo_fuera = as.numeric(as.character(buscar_empleo_fuera)),
+    economía_desmotiva_hijos = as.numeric(as.character(economía_desmotiva_hijos)),
+    costo_compra_vivienda = as.numeric(as.character(costo_compra_vivienda)),
+    incertidumbre_económica = as.numeric(as.character(incertidumbre_económica)),
+  )
+
+#1
+cor.test(datos_limpios$preocupación_empleo,
+         datos_limpios$buscar_empleo_fuera,
+         method = "spearman", exact = FALSE)
+
+#2
+
+table(
+desmotiva_hijos = datos_limpios$economía_desmotiva_hijos,
+compra_vivienda = datos_limpios$costo_compra_vivienda
+)
+
+cor.test(
+  datos_limpios$economía_desmotiva_hijos,
+  datos_limpios$costo_compra_vivienda,
+  method = "spearman",
+  use = "complete.obs",
+  exact = FALSE
+)
+
+
+#3
+
+datos_likert |>
+  count(economía_desmotiva_hijos, dispuesta_posponer_familia) |>
+  group_by(economía_desmotiva_hijos) |>
+  mutate(
+    porcentaje = round(n / sum(n) * 100, 2)
+  ) |>
+  ungroup()
+
+#4
+
+ cor.test(
+  datos_limpios$preocupación_empleo,
+  datos_limpios$incertidumbre_económica,
+  method = "spearman",
+  use = "complete.obs",
+  exact = FALSE)
+
+
+
+
+#5
+ datos_limpios |> 
+  count(factores_hijos) |> 
+  mutate(porcentaje= round(n / sum(n) * 100, 1))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+En esta sección decidimos utilizar la función cor.test() para analizar la correlación entre las variables. A partir del valor p de los resultados, evaluamos si existe una relación estadísticamente significativa entre ellas. Para poder realizar estos análisis, cambiamos el tipo de las variables a numeric. 
+
+La primera relación explorada es entre la preocupación por el empleo y considerar buscar trabajo fuera de Puerto Rico. Se encontró una correlación positiva moderada y estadísticamente significativa (rho = 0.42, S = 3181.2, p = 0.018). Esto indica que quienes están más preocupados por no conseguir un empleo con salario adecuado también tienden a considerar más la opción de emigrar para trabajar.
+
+La segunda relación analiza si existe una conexión entre considerar que la economía desmotiva a los jóvenes a tener hijos y percibir que el costo de comprar una vivienda es muy elevado. Los resultados muestran una correlación positiva (rho = 0.64, S = 1960.3, p = 7.809e-05), lo que indica que ambas percepciones tienden a aumentar juntas. Esto quiere decir que quienes consideran que comprar una vivienda es muy costoso también suelen estar de acuerdo con que la situación económica desmotiva a los jóvenes a tener hijos. Al observar la tabla cruzada, se destaca que 25 de los 32 participantes seleccionaron la puntuación más alta (5) en ambas preguntas. Esto representa la mayoría de las respuestas y refleja que ambas preocupaciones están presentes entre los participantes. Sin embargo, es importante tener en cuenta que las respuestas se concentran principalmente en esa categoría, por lo que los resultados deben interpretarse con cautela. Sería interesante explorar si esta misma relación se mantiene al realizar el estudio con una muestra más grande.
+
+La tercera relación compara el acuerdo con que la economía desmotiva a tener hijos con la disposición a posponer la formación de familia, mediante una tabla de porcentajes por fila. Entre quienes están totalmente de acuerdo (n = 25), 72% dijo que sí estaría dispuesto a posponer la familia, 12% respondió “No aplica”, 8% “No sé” y 8% “No”. Entre quienes están de acuerdo (n = 6), 66.7% respondió que sí. La única persona en desacuerdo respondió “No sé”, por lo que su fila marca 100%, un porcentaje poco informativo con un solo caso. Casi todos los participantes (31 de 32) coinciden en que la economía desmotiva a tener hijos, así que no hay un verdadero grupo de comparación, y el patrón claro es que la mayoría de quienes lo piensan posponería la familia.
+
+La cuarta relación es entre la preocupación por el empleo y la incertidumbre económica sobre el futuro. Se encontró una correlación positiva, apenas significativa (rho = 0.36, S = 3476.3, p = 0.041). Las personas más preocupadas por conseguir empleo también tienden a sentir más incertidumbre sobre su futuro, aunque la relación es modesta.
+
+Por último, se realizó una tabla de frecuencias sobre los factores que influyen en la postergación de formar una familia. Según los resultados, la economía aparece en la mayoría de las combinaciones seleccionadas por los participantes. También se destaca la estabilidad laboral, que suele aparecer junto con la economía y los estudios. Esto sugiere que las preocupaciones económicas, la seguridad en el empleo y la preparación académica son aspectos importantes que los participantes toman en consideración al momento de decidir cuándo formar una familia.
+
+## Valores atípicos y datos faltantes
+
+Identifiquen cualquier caso relevante y describan cómo lo manejarán o planean manejarlo.
+
+```{r}
+#| label: valores-atipicos
+
+# Incluya su código para identificar valores atípicos y faltantes
+#sum(is.na(datos_limpios))
+
+sum(is.na(datos_limpios))
+
+
+
+```
+En nuestra muestra no encontramos valores atípicos, ya que todos los encuestados contestaron dentro de las opciones establecidas en las preguntas y no hubo respuestas fuera de lo solicitado. Sin embargo, sí se identificaron tres valores faltantes (NA). El primero corresponde al encuestado #2, en la pregunta sobre el costo de vida en Puerto Rico y la dificultad para independizarse económicamente. Por otra parte, los dos valores faltantes restantes corresponden al mismo participante, el encuestado #30. Estos se encontraron en las preguntas sobre la facultad a la que pertenece y su situación de empleo.
+
+## Resumen y conclusiones iniciales
+
+Síntesis breve de hallazgos preliminares y su relevancia para el proyecto final.
+
+A partir de nuestra muestra exploratoria (n = 32), compuesta por estudiantes universitarios de la Universidad de Puerto Rico, Recinto de Río Piedras (UPRRP), identificamos varios hallazgos preliminares que permiten comprender cómo las condiciones económicas pueden relacionarse con las expectativas personales y familiares de los participantes. En términos generales, los resultados reflejan una preocupación considerable por la situación económica de Puerto Rico, especialmente en aspectos como el costo de vida, la vivienda, los alimentos, la independencia económica y las oportunidades laborales. A partir de estos resultados, destacamos tres observaciones principales.
+
+En primer lugar, encontramos que las condiciones económicas representan una preocupación importante para los participantes. Las respuestas a las preguntas de escala Likert reflejaron niveles elevados de acuerdo con respecto a la incertidumbre económica, el costo de vida y las dificultades para independizarse. Las puntuaciones más altas se observaron en la percepción de que el costo de vida dificulta la independencia económica y en el aumento del costo de los alimentos. También se identificó un alto nivel de acuerdo con que comprar o alquilar una vivienda resulta costoso y con que las condiciones económicas actuales pueden desmotivar a los jóvenes a tener hijos. Estos resultados guardan relación con el estudio de Santos-Lozada y sus colaboradores [@Santos-Lozada16082026], quienes explican cómo la crisis económica iniciada en 2006 aceleró el descenso de la fecundidad en Puerto Rico. Su investigación permite contextualizar nuestros hallazgos dentro de un escenario más amplio, en el que las condiciones económicas pueden relacionarse con los cambios en las decisiones reproductivas de la población.
+
+En segundo lugar, identificamos una relación entre la preocupación por conseguir un empleo con un salario adecuado y la posibilidad de buscar trabajo fuera de Puerto Rico. La correlación positiva encontrada (rho = 0.42, p = 0.0176) indica que quienes expresan mayor preocupación por sus oportunidades laborales también tienden a considerar la posibilidad de trabajar fuera del país. Este resultado coincide con lo planteado por [@flecha2016analisis, pp.50-62], quien señala que los factores económicos representan la principal motivación detrás de la inestabilidad y la consideración de emigrar de Puerto Rico. Asimismo, @CorderoGuzmanHector2020educacion señala que alcanzar mayores niveles de escolaridad no garantiza necesariamente mejores ingresos ni una integración laboral estable. Esto nos lleva a considerar que, aunque los jóvenes completen sus estudios, todavía pueden enfrentar dificultades para conseguir estabilidad económica en el país.
+
+En tercer lugar, observamos que existe una diferencia entre el deseo de tener hijos y el momento en que los participantes consideran posible formar una familia. Aunque 20 de los 32 encuestados indicaron que desean tener hijos en algún momento de sus vidas, también se identificó una disposición considerable a posponer la formación de una familia para alcanzar metas académicas o profesionales. Al examinar los factores que influyen en esta decisión, la economía apareció en la mayoría de las combinaciones seleccionadas, seguida de aspectos como la estabilidad laboral y los estudios. Este hallazgo es relevante porque sugiere que postergar la formación de una familia no necesariamente significa renunciar a tener hijos, sino que puede responder a la percepción de no contar todavía con las condiciones económicas o personales necesarias.
+
+En general, estos resultados nos permiten observar que las decisiones sobre el futuro familiar no dependen solamente del deseo de tener hijos, sino también de las condiciones en las que los jóvenes esperan desarrollar sus vidas. Las preocupaciones sobre el empleo, el costo de vida y la independencia económica parecen formar parte de cómo los participantes visualizan su futuro en Puerto Rico. Aunque nuestra muestra es pequeña, los hallazgos nos dan una idea de cómo estas preocupaciones pueden influir en las expectativas de los estudiantes y nos motivan a seguir explorando e investigando la relación entre la situación económica, la educación y la decisión de formar una familia.
+
+------------------------------------------------------------------------
+
+# Metodología
+
+Describan brevemente las herramientas empleadas (por ejemplo, R, tidyverse, u otras librerías utilizadas en Quarto).
+
+Para nuestro análisis exploratorio, estuvimos utilizando un documento de Quarto en Rstudio y los paquetes de tidyverse, dplyr y  ggplot2.  A partir del archivo de respuestas de nuestra encuesta, se realizó la limpieza inicial de datos mediante renombrado de variables, eliminación de columnas no analíticas, asignación de identificadores secuenciales y transformación de preguntas en escala Likert (1-5) a factores ordenados (ordered = TRUE), para así preservar sus valores originales. Para la exploración se calcularon medidas descriptivas como conteos, porcentajes, medias, medianas y desviaciones estándar, tablas cruzadas y visualizaciones). Además se realizaron Cor.test() con method = ´Spearman´, convirtiendo temporalmente las escalas a valores numéricos (as.numeric(as.character()). También, se identificaron los valores NA con (sum(is.na(datos)). Además, el documento mantiene el formato bibliográfico APA con (apa.clacso y referencias.bib)
+
+------------------------------------------------------------------------
+
+# Declaración de uso de MEL {.unnumbered}
+
+Se utilizó ChatGPT y Gemini para las resolución de errores técnicos en R y RStudio. Apoyo en la ortografía y la revisión de redacción.
+
+------------------------------------------------------------------------
+
+# Referencias {.unnumbered}
+
+::: {#refs}
+:::
